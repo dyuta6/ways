@@ -1,0 +1,44 @@
+workflows:
+  ios-app-store:
+    name: iOS App Store Release
+    instance_type: mac_mini_m1
+    max_build_duration: 120
+    integrations:
+        app_store_connect: Codemagic
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        # LÜTFEN BURAYI KENDİ BUNDLE ID'NİZ İLE DEĞİŞTİRİN
+        IOS_BUNDLE_ID: "com.yourcompany.yourapp" 
+        APP_STORE_CONNECT_KEY_IDENTIFIER: Fonksiyon.kimlik
+        APP_STORE_CONNECT_ISSUER_ID: Fonksiyon.veren kimliği
+        APP_STORE_CONNECT_PRIVATE_KEY: Fonksiyon.özel anahtar
+    scripts:
+      - name: Set up code signing settings on Xcode project
+        script: | 
+          xcode-project use-profiles
+      - name: Get Flutter packages
+        script: | 
+          flutter packages pub get
+      - name: Install pods
+        script: | 
+          find . -name "Podfile" -execdir pod install \;
+      - name: Build IPA with Flutter
+        script: | 
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$(($BUILD_NUMBER + 1)) \
+            --export-options-plist=$HOME/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        
+        # 'true' olarak ayarlarsanız, derleme başarılı olunca TestFlight'a gönderilir.
+        submit_to_testflight: true 

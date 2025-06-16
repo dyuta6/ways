@@ -1,4 +1,16 @@
 workflows:
+  ios-create-certificate:
+    name: Generate Certificate Signing Request
+    instance_type: mac_mini_m2
+    scripts:
+      - name: Generate CSR and Private Key
+        script: | 
+          keychain initialize
+          keychain create-key --csr --dist-cert
+    artifacts:
+      - $HOME/Library/MobileDevice/Signing/codemagic.csr
+      - $HOME/Library/MobileDevice/Signing/codemagic.key
+
   ios-workflow:
     name: iOS Workflow
     max_build_duration: 120
@@ -15,14 +27,9 @@ workflows:
     scripts:
       - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
         script: keychain initialize
-      - name: List existing certificates for debugging
-        script: | 
-          echo "DEBUG: Listing all certificates on the Apple Developer account..."
-          app-store-connect list-certificates
       - name: Fetch signing files
         script: | 
           app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create
-
       - name: Set up signing certificate
         script: keychain add-certificates
       - name: Set up code signing settings on Xcode project

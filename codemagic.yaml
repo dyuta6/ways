@@ -1,44 +1,47 @@
 workflows:
-  ios-app-store:
-    name: iOS App Store Release
-    instance_type: mac_mini_m1
+  ios-workflow:
+    name: iOS Workflow
     max_build_duration: 120
-    integrations:
-      app_store_connect: "Codemagic Admin"
+    instance_type: mac_mini_m2
     environment:
+      xcode: 16.2
       flutter: stable
-      xcode: latest
-      cocoapods: default
       vars:
-        BUNDLE_ID: "com.dyuta6.ways"
+        APP_ID: 6747345609 # <-- BURAYA KENDİ UYGULAMA ID'NİZİ YAZIN
+        BUNDLE_ID: com.dyuta6.ways # <-- BURAYA KENDİ BUNDLE ID'NİZİ YAZIN
+
     scripts:
-      - name: Initialize keychain
-        script: | 
-          keychain initialize
+      - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
+        script: keychain initialize
       - name: Fetch signing files
         script: | 
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create
+
+      - name: Set up signing certificate
+        script: keychain add-certificates
       - name: Set up code signing settings on Xcode project
-        script: | 
-          xcode-project use-profiles
+        script: xcode-project use-profiles
       - name: Get Flutter packages
-        script: | 
+        script: |
           flutter packages pub get
       - name: Install pods
-        script: | 
+        script: |
           find . -name "Podfile" -execdir pod install \;
-      - name: Build IPA with Flutter
-        script: | 
+      - name: versioning
+        script: |
+          LATEST_BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_ID") + 1))
+          cd ./ios
+          agvtool new-version -all $(($LATEST_BUILD_NUMBER))
+          agvtool new-marketing-version 1.0.$(($LATEST_BUILD_NUMBER))
+
+      - name: Flutter build ipa and automatic versioning
+        script: |
           flutter build ipa --release \
-            --build-name=1.0.0 \
-            --build-number=$(($BUILD_NUMBER + 1))
+            --export-options-plist=/Users/builder/export_options.plist
     artifacts:
-      - build/ios/ipa/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - /Users/builder/clone/build/ios/ipa/*.ipa
+      - flutter_drive.log
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_ID
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        
-        submit_to_testflight: true
+        auth: integration

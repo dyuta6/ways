@@ -15,6 +15,10 @@ workflows:
     scripts:
       - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
         script: keychain initialize
+      - name: List existing certificates for debugging
+        script: | 
+          echo "DEBUG: Listing all certificates on the Apple Developer account..."
+          app-store-connect certificates
       - name: Fetch signing files
         script: | 
           app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create

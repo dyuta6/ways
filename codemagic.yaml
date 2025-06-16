@@ -1,67 +1,35 @@
 workflows:
-  ios-create-certificate:
-    name: Generate Certificate Signing Request
-    instance_type: mac_mini_m2
-    scripts:
-      - name: Generate CSR and Private Key using OpenSSL
-        script: | 
-          # Create a directory to hold our files
-          mkdir -p $CM_BUILD_DIR/certs
-
-          # Generate the Private Key
-          openssl genrsa -out $CM_BUILD_DIR/certs/codemagic.key 2048
-
-          # Generate the Certificate Signing Request (CSR)
-          # The subject line can be anything, it's just a placeholder
-          openssl req -new -key $CM_BUILD_DIR/certs/codemagic.key -out $CM_BUILD_DIR/certs/codemagic.csr -subj "/C=US/ST=California/L=Cupertino/O=Your Name/CN=Your App"
-    artifacts:
-      - $CM_BUILD_DIR/certs/codemagic.csr
-      - $CM_BUILD_DIR/certs/codemagic.key
-
   ios-workflow:
     name: iOS Workflow
     max_build_duration: 120
     instance_type: mac_mini_m2
+    # Entegrasyon, yayınlama ve versiyonlama için hala gerekli.
     integrations:
       app_store_connect: "Codemagic Admin"
     environment:
       xcode: 16.2
       flutter: stable
       vars:
-        APP_ID: 6747345609 # <-- BURAYA KENDİ UYGULAMA ID'NİZİ YAZIN
-        BUNDLE_ID: com.dyuta6.ways # <-- BURAYA KENDİ BUNDLE ID'NİZİ YAZIN
-
+        APP_ID: 6747345609 # Otomatik versiyonlama için
     scripts:
-      - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
-        script: keychain initialize
-      - name: Fetch signing files
-        script: | 
-          app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create
-      - name: Set up signing certificate
-        script: keychain add-certificates
-      - name: Set up code signing settings on Xcode project
-        script: xcode-project use-profiles
       - name: Get Flutter packages
         script: |
           flutter packages pub get
       - name: Install pods
         script: |
           find . -name "Podfile" -execdir pod install \;
-      - name: versioning
+      - name: Set up manual versioning
         script: |
           LATEST_BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_ID") + 1))
           cd ./ios
           agvtool new-version -all $(($LATEST_BUILD_NUMBER))
           agvtool new-marketing-version 1.0.$(($LATEST_BUILD_NUMBER))
-
-      - name: Flutter build ipa and automatic versioning
+      - name: Flutter build ipa
         script: |
-          flutter build ipa --release \
-            --export-options-plist=/Users/builder/export_options.plist
+          flutter build ipa --release
     artifacts:
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
-      - /Users/builder/clone/build/ios/ipa/*.ipa
-      - flutter_drive.log
+      - build/ios/ipa/*.ipa
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
     publishing:
       app_store_connect:
         auth: integration

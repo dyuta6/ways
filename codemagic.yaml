@@ -18,7 +18,7 @@ workflows:
       - name: List existing certificates for debugging
         script: | 
           echo "DEBUG: Listing all certificates on the Apple Developer account..."
-          app-store-connect certificates
+          app-store-connect list-certificates
       - name: Fetch signing files
         script: | 
           app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create

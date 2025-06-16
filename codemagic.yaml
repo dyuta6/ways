@@ -3,13 +3,20 @@ workflows:
     name: Generate Certificate Signing Request
     instance_type: mac_mini_m2
     scripts:
-      - name: Generate CSR and Private Key
+      - name: Generate CSR and Private Key using OpenSSL
         script: | 
-          keychain initialize
-          keychain create-key --csr --dist-cert
+          # Create a directory to hold our files
+          mkdir -p $CM_BUILD_DIR/certs
+
+          # Generate the Private Key
+          openssl genrsa -out $CM_BUILD_DIR/certs/codemagic.key 2048
+
+          # Generate the Certificate Signing Request (CSR)
+          # The subject line can be anything, it's just a placeholder
+          openssl req -new -key $CM_BUILD_DIR/certs/codemagic.key -out $CM_BUILD_DIR/certs/codemagic.csr -subj "/C=US/ST=California/L=Cupertino/O=Your Name/CN=Your App"
     artifacts:
-      - $HOME/Library/MobileDevice/Signing/codemagic.csr
-      - $HOME/Library/MobileDevice/Signing/codemagic.key
+      - $CM_BUILD_DIR/certs/codemagic.csr
+      - $CM_BUILD_DIR/certs/codemagic.key
 
   ios-workflow:
     name: iOS Workflow

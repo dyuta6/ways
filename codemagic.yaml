@@ -4,17 +4,13 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 120
     integrations:
-        app_store_connect: Codemagic
+      app_store_connect: Codemagic
     environment:
       flutter: stable
       xcode: latest
       cocoapods: default
       vars:
-        # LÜTFEN BURAYI KENDİ BUNDLE ID'NİZ İLE DEĞİŞTİRİN
-        IOS_BUNDLE_ID: "com.dyuta6.ways" 
-        APP_STORE_CONNECT_KEY_IDENTIFIER: Fonksiyon.kimlik
-        APP_STORE_CONNECT_ISSUER_ID: Fonksiyon.veren kimliği
-        APP_STORE_CONNECT_PRIVATE_KEY: Fonksiyon.özel anahtar
+        IOS_BUNDLE_ID: "com.dyuta6.ways"
     scripts:
       - name: Set up code signing settings on Xcode project
         script: | 
@@ -37,26 +33,7 @@ workflows:
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        key_id: $APP_STORE_CONNECT_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         
-        # 'true' olarak ayarlarsanız, derleme başarılı olunca TestFlight'a gönderilir.
         submit_to_testflight: true
-
-  android-release:
-    name: Android Release Build
-    instance_type: mac_mini_m1
-    environment:
-      flutter: stable
-      vars:
-        # Java heap space hatasını çözmek için bellek ayarını burada yapıyoruz.
-        _JAVA_OPTIONS: "-Xms1g -Xmx4g"
-    scripts:
-      - name: Get Flutter packages
-        script: | 
-          flutter packages pub get
-      - name: Build Android App Bundle for Release
-        script: | 
-          flutter build appbundle --release
-    artifacts:
-      - build/app/outputs/bundle/release/*.aab 

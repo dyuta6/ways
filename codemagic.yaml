@@ -19,7 +19,11 @@ workflows:
         script: keychain initialize
       - name: Fetch signing files
         script: | 
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE
+          # First try to fetch existing files
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE || {
+            echo "No existing certificates found, creating new ones..."
+            app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          }
 
       - name: Set up signing certificate
         script: keychain add-certificates

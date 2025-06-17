@@ -17,9 +17,11 @@ workflows:
           keychain initialize
       - name: Install certificates
         script: | 
+          # Bu komut, sizin yüklediğiniz .p12 dosyasını bulup kurar.
           keychain add-certificates
       - name: Set up provisioning profiles
         script: | 
+          # Bu komut, sizin yüklediğiniz .mobileprovision dosyasını bulup kullanır.
           xcode-project use-profiles
       - name: Get Flutter packages
         script: |

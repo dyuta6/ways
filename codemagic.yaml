@@ -12,6 +12,15 @@ workflows:
       vars:
         APP_ID: 6747345609 # Otomatik versiyonlama için
     scripts:
+      - name: Initialize keychain
+        script: | 
+          keychain initialize
+      - name: Install certificates
+        script: | 
+          keychain add-certificates
+      - name: Set up provisioning profiles
+        script: | 
+          xcode-project use-profiles
       - name: Get Flutter packages
         script: |
           flutter packages pub get

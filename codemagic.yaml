@@ -1,46 +1,48 @@
-workflows:
-  ios-workflow:
-    name: iOS Workflow
-    max_build_duration: 120
-    instance_type: mac_mini_m2
-    # Entegrasyon, yayınlama ve versiyonlama için hala gerekli.
-    integrations:
-      app_store_connect: "Codemagic Admin"
-    environment:
-      xcode: 16.2
-      flutter: stable
-      vars:
-        APP_ID: 6747345609 # Otomatik versiyonlama için
-    scripts:
-      - name: Initialize keychain
-        script: | 
-          keychain initialize
-      - name: Install certificates
-        script: | 
-          # Bu komut, sizin yüklediğiniz .p12 dosyasını bulup kurar.
-          keychain add-certificates
-      - name: Set up provisioning profiles
-        script: | 
-          # Bu komut, sizin yüklediğiniz .mobileprovision dosyasını bulup kullanır.
-          xcode-project use-profiles
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Install pods
-        script: |
-          find . -name "Podfile" -execdir pod install \;
-      - name: Set up manual versioning
-        script: |
-          LATEST_BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_ID") + 1))
-          cd ./ios
-          agvtool new-version -all $(($LATEST_BUILD_NUMBER))
-          agvtool new-marketing-version 1.0.$(($LATEST_BUILD_NUMBER))
-      - name: Flutter build ipa
-        script: |
-          flutter build ipa --release
-    artifacts:
-      - build/ios/ipa/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-    publishing:
-      app_store_connect:
-        auth: integration
+ios-workflow:
+  name: iOS Workflow
+  max_build_duration: 120
+  instance_type: mac_mini_m2
+  environment:
+    xcode: 16.2
+    flutter: stable
+    groups:
+        - app_store_connect
+    vars:
+      APP_ID: 6747345609
+      BUNDLE_ID: com.dyuta6.ways
+
+  scripts:
+    - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
+      script: keychain initialize
+    - name: Fetch signing files
+      script: | 
+        app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create
+
+    - name: Set up signing certificate
+      script: keychain add-certificates
+    - name: Set up code signing settings on Xcode project
+      script: xcode-project use-profiles
+    - name: Get Flutter packages
+      script: |
+        flutter packages pub get
+    - name: Install pods
+      script: |
+        find . -name "Podfile" -execdir pod install \;
+    - name: versioning
+      script: |
+        LATEST_BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_ID") + 1))
+        cd ./ios
+        agvtool new-version -all $(($LATEST_BUILD_NUMBER))
+        agvtool new-marketing-version 1.0.$(($LATEST_BUILD_NUMBER))
+
+    - name: Flutter build ipa and automatic versioning
+      script: |
+        flutter build ipa --release \
+          --export-options-plist=/Users/builder/export_options.plist
+  artifacts:
+    - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+    - /Users/builder/clone/build/ios/ipa/*.ipa
+    - flutter_drive.log
+  publishing:
+    app_store_connect:
+      auth: integration

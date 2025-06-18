@@ -8,8 +8,6 @@ workflows:
     environment:
       xcode: 16.2
       flutter: stable
-      groups:
-          - app_store_connect
       vars:
         APP_ID: 6747345609
         BUNDLE_ID: com.dyuta6.ways

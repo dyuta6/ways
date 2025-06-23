@@ -8,6 +8,8 @@ workflows:
     environment:
       xcode: 16.2
       flutter: stable
+      groups:
+          - app_store_connect
       vars:
         APP_ID: 6747345609
         BUNDLE_ID: com.dyuta6.ways
@@ -15,23 +17,12 @@ workflows:
     scripts:
       - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
         script: keychain initialize
-      - name: Set up provisioning profiles from environment variables
+      - name: Fetch signing files
         script: | 
-            PROFILES_HOME="$HOME/Library/MobileDevice/Provisioning Profiles"
-            mkdir -p "$PROFILES_HOME"
-            PROFILE_PATH="$(mktemp "$PROFILES_HOME"/$(uuidgen).mobileprovision)"
-            echo ${CM_PROVISIONING_PROFILE} | base64 --decode > "$PROFILE_PATH"
-            echo "Saved provisioning profile $PROFILE_PATH"
+          app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --create
+
       - name: Set up signing certificate
-        script: | 
-            echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
-            if [ -z ${CM_CERTIFICATE_PASSWORD+x} ]; then
-                # when using a certificate that is not password-protected
-                keychain add-certificates --certificate /tmp/certificate.p12
-            else
-                # when using a password-protected certificate
-                keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
-            fi
+        script: keychain add-certificates
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
       - name: Get Flutter packages
@@ -51,9 +42,6 @@ workflows:
         script: |
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist
-      - name: Fetch signing files
-        script: | 
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
     artifacts:
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
       - /Users/builder/clone/build/ios/ipa/*.ipa

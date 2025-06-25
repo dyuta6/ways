@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' as vector_math;
 import 'package:hive/hive.dart';
+import 'color_picker_widget.dart';
+import 'node_actions_widget.dart';
 
 part 'home_page.g.dart';
 
@@ -223,64 +225,37 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                 },
                 onLongPress: () {
-                  final locale = Localizations.localeOf(context);
-                  final isTr = locale.languageCode == 'tr';
-                  showDialog(
+                  NodeActionsWidget.showActionsMenu(
                     context: context,
-                    builder: (context) => SimpleDialog(
-                      title: Text(isTr ? 'Node İşlemleri' : 'Node Actions'),
-                      children: [
-                        SimpleDialogOption(
-                          onPressed: () {
+                    node: node,
+                    onStartConnection: () {
                             setState(() {
                               connectionStartNode = node;
                             });
-                            Navigator.pop(context);
                           },
-                          child: Text(isTr ? 'Bağlantı Başlat' : 'Start Connection'),
-                        ),
-                        if (connectionStartNode != null && connectionStartNode != node)
-                          SimpleDialogOption(
-                            onPressed: () {
+                    onConnectHere: (connectionStartNode != null && connectionStartNode != node) 
+                      ? () {
                               setState(() {
                                 if (!connectionStartNode!.connections.contains(node.id)) {
                                   connectionStartNode!.connections.add(node.id);
                                 }
                                 connectionStartNode = null;
                               });
-                              Navigator.pop(context);
-                            },
-                            child: Text(isTr ? 'Buraya Bağla' : 'Connect Here'),
-                          ),
-                        if (node.connections.isNotEmpty)
-                          SimpleDialogOption(
-                            onPressed: () {
+                        }
+                      : null,
+                    onClearConnections: () {
                               setState(() {
                                 node.connections.clear();
                                 for (var otherNode in nodes) {
                                   otherNode.connections.remove(node.id);
                                 }
                               });
-                              Navigator.pop(context);
-                            },
-                            child: Text(isTr ? 'Bağlantıları Sil' : 'Delete Connections'),
-                          ),
-                        SimpleDialogOption(
-                          onPressed: () {
-                            final locale = Localizations.localeOf(context);
-                            final isTr = locale.languageCode == 'tr';
-                            showDialog(
+                    },
+                    onDeleteNode: () {
+                      NodeActionsWidget.showDeleteConfirmation(
                               context: context,
-                              builder: (context) => AlertDialog(
-                                title: Text(isTr ? 'Node\'u Sil' : 'Delete Node'),
-                                content: Text(isTr ? 'Bu node\'u silmek istediğinizden emin misiniz?' : 'Are you sure you want to delete this node?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: Text(isTr ? 'İptal' : 'Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
+                        nodeName: node.title,
+                        onConfirm: () {
                                       setState(() {
                                         // Önce bu node'a olan tüm bağlantıları sil
                                         for (var otherNode in nodes) {
@@ -289,19 +264,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                         // Sonra node'u listeden kaldır
                                         nodes.remove(node);
                                       });
-                                      Navigator.pop(context); // Onay dialogunu kapat
-                                      Navigator.pop(context); // Node işlemleri menüsünü kapat
                                     },
-                                    child: Text(isTr ? 'Sil' : 'Delete', style: const TextStyle(color: Colors.red)),
-                                  ),
-                                ],
-                              ),
                             );
                           },
-                          child: Text(isTr ? 'Node\'u Sil' : 'Delete Node', style: const TextStyle(color: Colors.red)),
-                        ),
-                      ],
-                    ),
                   );
                 },
                 child: _buildNode(node),
@@ -352,48 +317,32 @@ class _MyHomePageState extends State<MyHomePage> {
             right: 5,
             child: GestureDetector(
               onTap: () {
-                showDialog(
+                NodeActionsWidget.showConnectionActionsMenu(
                   context: context,
-                  builder: (context) => SimpleDialog(
-                    title: const Text('Bağlantı İşlemleri'),
-                    children: [
-                      SimpleDialogOption(
-                        onPressed: () {
+                  node: node,
+                  onStartConnection: () {
                           setState(() {
                             connectionStartNode = node;
                           });
-                          Navigator.pop(context);
                         },
-                        child: const Text('Bağlantı Başlat'),
-                      ),
-                      if (connectionStartNode != null && connectionStartNode != node)
-                        SimpleDialogOption(
-                          onPressed: () {
+                  onConnectHere: (connectionStartNode != null && connectionStartNode != node) 
+                    ? () {
                             setState(() {
                               if (!connectionStartNode!.connections.contains(node.id)) {
                                 connectionStartNode!.connections.add(node.id);
                               }
                               connectionStartNode = null;
                             });
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Buraya Bağla'),
-                        ),
-                      if (node.connections.isNotEmpty)
-                        SimpleDialogOption(
-                          onPressed: () {
+                      }
+                    : null,
+                  onClearConnections: () {
                             setState(() {
                               node.connections.clear();
                               for (var otherNode in nodes) {
                                 otherNode.connections.remove(node.id);
                               }
                             });
-                            Navigator.pop(context);
                           },
-                          child: const Text('Bağlantıları Sil'),
-                        ),
-                    ],
-                  ),
                 );
               },
               child: Container(
@@ -416,34 +365,14 @@ class _MyHomePageState extends State<MyHomePage> {
             left: 5,
             child: GestureDetector(
               onTap: () {
-                _titleController.text = node.title;
-                showDialog(
+                NodeActionsWidget.showEditDialog(
                   context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Node İsmini Değiştir'),
-                    content: TextField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Yeni İsim',
-                      ),
-                      autofocus: true,
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('İptal'),
-                      ),
-                      TextButton(
-                        onPressed: () {
+                  currentTitle: node.title,
+                  onTitleChanged: (newTitle) {
                           setState(() {
-                            node.title = _titleController.text;
+                      node.title = newTitle;
                           });
-                          Navigator.pop(context);
                         },
-                        child: const Text('Kaydet'),
-                      ),
-                    ],
-                  ),
                 );
               },
               child: Container(
@@ -466,19 +395,10 @@ class _MyHomePageState extends State<MyHomePage> {
             left: 5,
             child: GestureDetector(
               onTap: () {
-                showDialog(
+                NodeActionsWidget.showDeleteConfirmation(
                   context: context,
-                  builder: (dialogContext) => AlertDialog(
-                    title: const Text('Node\'u Sil'),
-                    content: const Text(
-                        'Bu node\'u silmek istediğinizden emin misiniz?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        child: const Text('İptal'),
-                      ),
-                      TextButton(
-                        onPressed: () {
+                  nodeName: node.title,
+                  onConfirm: () {
                           setState(() {
                             // Önce bu node'a olan tüm bağlantıları sil
                             for (var otherNode in nodes) {
@@ -487,13 +407,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             // Sonra node'u listeden kaldır
                             nodes.remove(node);
                           });
-                          Navigator.pop(dialogContext);
                         },
-                        child: const Text('Sil',
-                            style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
                 );
               },
               child: Container(
@@ -506,6 +420,45 @@ class _MyHomePageState extends State<MyHomePage> {
                   Icons.delete,
                   size: 20,
                   color: Colors.red,
+                ),
+              ),
+            ),
+          ),
+          // Renk değiştirme ikonu
+          Positioned(
+            bottom: 5,
+            right: 5,
+            child: GestureDetector(
+              onTap: () {
+                ColorPickerWidget.show(
+                  context: context,
+                  currentColor: node.color,
+                  onColorSelected: (color) {
+                    setState(() {
+                      // Node'un colorValue'sunu güncelle
+                      final nodeIndex = nodes.indexOf(node);
+                      if (nodeIndex != -1) {
+                        nodes[nodeIndex] = NodeItem(
+                          id: node.id,
+                          title: node.title,
+                          position: node.position,
+                          colorValue: color.value,
+                        )..connections = node.connections;
+                      }
+                    });
+                  },
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.palette,
+                  size: 20,
+                  color: Colors.purple,
                 ),
               ),
             ),

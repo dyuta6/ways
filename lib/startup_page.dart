@@ -69,18 +69,31 @@ class StartupPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton.icon(
-              icon: const Icon(Icons.add_circle_outline),
-              label: Text(isTr ? 'Yeni Proje Oluştur' : 'Create New Project'),
+              icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+              label: Text(
+                isTr ? 'Yeni Proje Oluştur' : 'Create New Project',
+                style: const TextStyle(color: Colors.white),
+              ),
               onPressed: () => _createNewProject(context),
               style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                textStyle: const TextStyle(fontSize: 18),
+                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                elevation: 8,
+                shadowColor: Colors.blue.withOpacity(0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              icon: const Icon(Icons.folder_open),
-              label: Text(isTr ? 'Kaydedilenlerden Aç' : 'Open from Saved'),
+              icon: const Icon(Icons.folder_open, color: Colors.white),
+              label: Text(
+                isTr ? 'Kaydedilenlerden Aç' : 'Open from Saved',
+                style: const TextStyle(color: Colors.white),
+              ),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -88,8 +101,15 @@ class StartupPage extends StatelessWidget {
                 );
               },
               style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[600],
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                textStyle: const TextStyle(fontSize: 18),
+                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                elevation: 8,
+                shadowColor: Colors.green.withOpacity(0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ],

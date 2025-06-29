@@ -11,7 +11,7 @@ workflows:
       groups:
           - app_store_connect
       vars:
-        APP_ID: 6747345609
+        APP_ID: 6746816486
         BUNDLE_ID: com.dyuta6.ways
 
     scripts:
@@ -31,14 +31,15 @@ workflows:
       - name: Install pods
         script: |
           find . -name "Podfile" -execdir pod install \;
-      - name: versioning
+      - name: Increment version and build number
         script: |
           LATEST_BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_ID") + 1))
+          echo "Setting build number to: $LATEST_BUILD_NUMBER"
           cd ./ios
-          agvtool new-version -all $(($LATEST_BUILD_NUMBER))
-          agvtool new-marketing-version 1.0.$(($LATEST_BUILD_NUMBER))
+          agvtool new-version -all $LATEST_BUILD_NUMBER
+          agvtool new-marketing-version 1.0.$LATEST_BUILD_NUMBER
 
-      - name: Flutter build ipa and automatic versioning
+      - name: Flutter build ipa
         script: |
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist

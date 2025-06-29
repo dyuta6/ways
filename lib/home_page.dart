@@ -44,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
         id: '1',
         title: 'You',
         position: const Offset(3000, 3000), // Center of 6000x6000 container
-        colorValue: Colors.blue.value,
+        colorValue: const Color(0xFF6366F1).value,
       ));
     }
 
@@ -72,7 +72,21 @@ class _MyHomePageState extends State<MyHomePage> {
     final message =
         locale.languageCode == 'tr' ? 'Node\'lar kaydedildi!' : 'Nodes saved!';
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF6366F1),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 
@@ -105,69 +119,245 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        title: Text(widget.projectName),
-        backgroundColor: Colors.grey[800],
-        elevation: 4,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save, color: Colors.white),
-            onPressed: _saveNodes,
-            tooltip: 'Save Layout',
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _titleController.text = '';
-          final locale = Localizations.localeOf(context);
-          final isTr = locale.languageCode == 'tr';
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(isTr ? 'Yeni Node' : 'New Node'),
-              content: TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: isTr ? 'Node İsmi' : 'Node Name',
-                ),
-                autofocus: true,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(isTr ? 'İptal' : 'Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    final screenWidth = MediaQuery.of(context).size.width;
-                    final screenHeight = MediaQuery.of(context).size.height;
-                    final matrix = _transformationController.value;
-                    
-                    final vector = vector_math.Vector3(screenWidth / 2, screenHeight / 2, 0);
-                    final invertedMatrix = matrix.clone()..invert();
-                    final transformedPoint = invertedMatrix.transform3(vector);
-                    
-                    setState(() {
-                      final nodeId = DateTime.now().millisecondsSinceEpoch.toString();
-                      nodes.add(NodeItem(
-                        id: nodeId,
-                        title: _titleController.text.isNotEmpty ? _titleController.text : 'New Node',
-                        position: Offset(transformedPoint.x, transformedPoint.y),
-                        colorValue: Colors.blue.value,
-                      ));
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: Text(isTr ? 'Oluştur' : 'Create'),
-                ),
+      backgroundColor: const Color(0xFF1a1a1a),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF2d2d2d),
+                Color(0xFF404040),
               ],
             ),
-          );
-        },
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, size: 30,color: Colors.white),
+          ),
+          child: AppBar(
+            title: ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+              ).createShader(bounds),
+              child: Text(
+                widget.projectName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.save, color: Colors.white),
+                  onPressed: _saveNodes,
+                  tooltip: 'Save Layout',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6366F1).withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            _titleController.text = '';
+            final locale = Localizations.localeOf(context);
+            final isTr = locale.languageCode == 'tr';
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: const EdgeInsets.all(20),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2d2d2d),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Title Section
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 15),
+                        child: Text(
+                          isTr ? 'Yeni Node' : 'New Node',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ),
+                      
+                      // Content Section
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(15),
+                            gradient: LinearGradient(
+                              colors: [Colors.grey[800]!, Colors.grey[700]!],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: TextField(
+                            controller: _titleController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: isTr ? "Node İsmi" : "Node Name",
+                              hintStyle: TextStyle(color: Colors.grey[400]),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              contentPadding: const EdgeInsets.all(16),
+                              isDense: true,
+                            ),
+                            autofocus: true,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (value) {
+                              if (value.trim().isNotEmpty) {
+                                final screenWidth = MediaQuery.of(context).size.width;
+                                final screenHeight = MediaQuery.of(context).size.height;
+                                final matrix = _transformationController.value;
+                                
+                                final vector = vector_math.Vector3(screenWidth / 2, screenHeight / 2, 0);
+                                final invertedMatrix = matrix.clone()..invert();
+                                final transformedPoint = invertedMatrix.transform3(vector);
+                                
+                                setState(() {
+                                  final nodeId = DateTime.now().millisecondsSinceEpoch.toString();
+                                  nodes.add(NodeItem(
+                                    id: nodeId,
+                                    title: value.trim(),
+                                    position: Offset(transformedPoint.x, transformedPoint.y),
+                                    colorValue: const Color(0xFF6366F1).value,
+                                  ));
+                                });
+                                Navigator.pop(context);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      
+                      // Actions Section
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                                child: Text(
+                                  isTr ? 'İptal' : 'Cancel',
+                                  style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
+                                child: TextButton(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  onPressed: () {
+                                    final nodeTitle = _titleController.text.trim();
+                                    if (nodeTitle.isNotEmpty) {
+                                      final screenWidth = MediaQuery.of(context).size.width;
+                                      final screenHeight = MediaQuery.of(context).size.height;
+                                      final matrix = _transformationController.value;
+                                      
+                                      final vector = vector_math.Vector3(screenWidth / 2, screenHeight / 2, 0);
+                                      final invertedMatrix = matrix.clone()..invert();
+                                      final transformedPoint = invertedMatrix.transform3(vector);
+                                      
+                                      setState(() {
+                                        final nodeId = DateTime.now().millisecondsSinceEpoch.toString();
+                                        nodes.add(NodeItem(
+                                          id: nodeId,
+                                          title: nodeTitle,
+                                          position: Offset(transformedPoint.x, transformedPoint.y),
+                                          colorValue: const Color(0xFF6366F1).value,
+                                        ));
+                                      });
+                                      Navigator.pop(context);
+                                    }
+                                  },
+                                  child: Text(
+                                    isTr ? 'Oluştur' : 'Create',
+                                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(Icons.add, size: 30, color: Colors.white),
+        ),
       ),
       body: InteractiveViewer(
         transformationController: _transformationController,
@@ -183,9 +373,17 @@ class _MyHomePageState extends State<MyHomePage> {
               width: 6000,
               height: 6000,
               decoration: BoxDecoration(
-                color: Colors.grey[900],
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF1a1a1a),
+                    Color(0xFF2d2d2d),
+                    Color(0xFF404040),
+                  ],
+                ),
                 border: Border.all(
-                  color: Colors.red,
+                  color: const Color(0xFF6366F1).withOpacity(0.3),
                   width: 2.0,
                 ),
                 borderRadius: BorderRadius.circular(20),
@@ -279,6 +477,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildNode(NodeItem node) {
+    final Color darkerColor = Color.lerp(node.color, Colors.black, 0.4)!;
     return Container(
       width: 150,
       height: 100,
@@ -288,33 +487,62 @@ class _MyHomePageState extends State<MyHomePage> {
             width: 150,
             height: 100,
             decoration: BoxDecoration(
-              color: node.color,
-              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  node.color,
+                  darkerColor,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
-                  spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
+                  color: darkerColor.withOpacity(0.5),
+                  spreadRadius: 0,
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  spreadRadius: 0,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 1,
+              ),
             ),
-            child: Center(
-              child: Text(
-                node.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              child: Center(
+                child: Text(
+                  node.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black54,
+                        offset: Offset(1, 1),
+                        blurRadius: 2,
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
           ),
           // Bağlantı ikonu
           Positioned(
-            top: 5,
-            right: 5,
+            top: 6,
+            right: 6,
             child: GestureDetector(
               onTap: () {
                 NodeActionsWidget.showConnectionActionsMenu(
@@ -346,23 +574,37 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.9),
+                      Colors.white.withOpacity(0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: const Icon(
-                  Icons.link,
-                  size: 20,
-                  color: Colors.blue,
+                  Icons.link_rounded,
+                  size: 16,
+                  color: Color(0xFF6366F1),
                 ),
               ),
             ),
           ),
           // İsim değiştirme ikonu
           Positioned(
-            top: 5,
-            left: 5,
+            top: 6,
+            left: 6,
             child: GestureDetector(
               onTap: () {
                 NodeActionsWidget.showEditDialog(
@@ -376,23 +618,37 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.9),
+                      Colors.white.withOpacity(0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: const Icon(
-                  Icons.edit,
-                  size: 20,
-                  color: Colors.blue,
+                  Icons.edit_rounded,
+                  size: 16,
+                  color: Color(0xFF059669),
                 ),
               ),
             ),
           ),
           // Silme ikonu
           Positioned(
-            bottom: 5,
-            left: 5,
+            bottom: 6,
+            left: 6,
             child: GestureDetector(
               onTap: () {
                 NodeActionsWidget.showDeleteConfirmation(
@@ -411,23 +667,37 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.9),
+                      Colors.white.withOpacity(0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: const Icon(
-                  Icons.delete,
-                  size: 20,
-                  color: Colors.red,
+                  Icons.delete_rounded,
+                  size: 16,
+                  color: Color(0xFFDC2626),
                 ),
               ),
             ),
           ),
           // Renk değiştirme ikonu
           Positioned(
-            bottom: 5,
-            right: 5,
+            bottom: 6,
+            right: 6,
             child: GestureDetector(
               onTap: () {
                 ColorPickerWidget.show(
@@ -450,15 +720,29 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.9),
+                      Colors.white.withOpacity(0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: const Icon(
-                  Icons.palette,
-                  size: 20,
-                  color: Colors.purple,
+                  Icons.palette_rounded,
+                  size: 16,
+                  color: Color(0xFF8B5CF6),
                 ),
               ),
             ),
@@ -504,9 +788,9 @@ class ConnectionPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.5)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
     for (final node in nodes) {
       for (final connectionId in node.connections) {
@@ -514,7 +798,35 @@ class ConnectionPainter extends CustomPainter {
         final start = node.position + const Offset(150, 50);
         final end = connectedNode.position + const Offset(0, 50);
 
-        canvas.drawLine(start, end, paint);
+        // Gradient effect for connection lines
+        final gradient = LinearGradient(
+          colors: [
+            const Color(0xFF6366F1).withOpacity(0.8),
+            const Color(0xFF8B5CF6).withOpacity(0.6),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+
+        paint.shader = gradient.createShader(Rect.fromPoints(start, end));
+        
+        // Draw connection with slight curve for better aesthetics
+        final controlPoint1 = Offset(start.dx + (end.dx - start.dx) * 0.3, start.dy);
+        final controlPoint2 = Offset(start.dx + (end.dx - start.dx) * 0.7, end.dy);
+        
+        final path = Path()
+          ..moveTo(start.dx, start.dy)
+          ..cubicTo(controlPoint1.dx, controlPoint1.dy, controlPoint2.dx, controlPoint2.dy, end.dx, end.dy);
+        
+        canvas.drawPath(path, paint);
+        
+        // Draw connection points
+        final pointPaint = Paint()
+          ..color = const Color(0xFF6366F1)
+          ..style = PaintingStyle.fill;
+        
+        canvas.drawCircle(start, 4, pointPaint);
+        canvas.drawCircle(end, 4, pointPaint);
       }
     }
   }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' as vector_math;
 import 'package:hive/hive.dart';
+import 'dart:typed_data';
 import 'color_picker_widget.dart';
 import 'node_actions_widget.dart';
-
+import 'services/background_image_service.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 part 'home_page.g.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -27,6 +29,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final TransformationController _transformationController = TransformationController();
   final TextEditingController _titleController = TextEditingController();
   late final String _nodeBoxName;
+  Uint8List? _backgroundImage;
 
   @override
   void initState() {
@@ -59,6 +62,14 @@ class _MyHomePageState extends State<MyHomePage> {
         _centerView();
       }
     });
+
+    final settingsBox = await Hive.openBox('project_settings_${widget.projectId}');
+    final bgImage = settingsBox.get('background_image');
+    if (bgImage != null && mounted) {
+      setState(() {
+        _backgroundImage = bgImage;
+      });
+    }
   }
 
   Future<void> _saveNodes() async {
@@ -88,6 +99,13 @@ class _MyHomePageState extends State<MyHomePage> {
         margin: const EdgeInsets.all(16),
       ),
     );
+
+    final settingsBox = await Hive.openBox('project_settings_${widget.projectId}');
+    if (_backgroundImage != null) {
+      await settingsBox.put('background_image', _backgroundImage);
+    } else {
+      await settingsBox.delete('background_image');
+    }
   }
 
   void _centerView() {
@@ -114,6 +132,35 @@ class _MyHomePageState extends State<MyHomePage> {
       Hive.box<NodeItem>(_nodeBoxName).close();
     }
     super.dispose();
+  }
+
+  void _addNode(String title) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final matrix = _transformationController.value;
+    
+    final vector = vector_math.Vector3(screenWidth / 2, screenHeight / 2, 0);
+    final invertedMatrix = matrix.clone()..invert();
+    final transformedPoint = invertedMatrix.transform3(vector);
+    
+    setState(() {
+      final nodeId = DateTime.now().millisecondsSinceEpoch.toString();
+      nodes.add(NodeItem(
+        id: nodeId,
+        title: title,
+        position: Offset(transformedPoint.x, transformedPoint.y),
+        colorValue: const Color(0xFF6366F1).value,
+      ));
+    });
+  }
+
+  Future<void> _pickBackgroundImage() async {
+    final bytes = await BackgroundImageService.pickImageFromGallery();
+    if (bytes != null) {
+      setState(() {
+        _backgroundImage = bytes;
+      });
+    }
   }
 
   @override
@@ -162,7 +209,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.save, color: Colors.white),
-                  onPressed: _saveNodes,
+                  onPressed: _onSavePressed,
                   tooltip: 'Save Layout',
                 ),
               ),
@@ -191,287 +238,164 @@ class _MyHomePageState extends State<MyHomePage> {
             _titleController.text = '';
             final locale = Localizations.localeOf(context);
             final isTr = locale.languageCode == 'tr';
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => Dialog(
-                backgroundColor: Colors.transparent,
-                insetPadding: const EdgeInsets.all(20),
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2d2d2d),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.5),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Title Section
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 15),
-                        child: Text(
-                          isTr ? 'Yeni Node' : 'New Node',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22,
-                          ),
-                        ),
-                      ),
-                      
-                      // Content Section
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(15),
-                            gradient: LinearGradient(
-                              colors: [Colors.grey[800]!, Colors.grey[700]!],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: TextField(
-                            controller: _titleController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: isTr ? "Node İsmi" : "Node Name",
-                              hintStyle: TextStyle(color: Colors.grey[400]),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: Colors.transparent,
-                              contentPadding: const EdgeInsets.all(16),
-                              isDense: true,
-                            ),
-                            autofocus: true,
-                            textInputAction: TextInputAction.done,
-                            onSubmitted: (value) {
-                              if (value.trim().isNotEmpty) {
-                                final screenWidth = MediaQuery.of(context).size.width;
-                                final screenHeight = MediaQuery.of(context).size.height;
-                                final matrix = _transformationController.value;
-                                
-                                final vector = vector_math.Vector3(screenWidth / 2, screenHeight / 2, 0);
-                                final invertedMatrix = matrix.clone()..invert();
-                                final transformedPoint = invertedMatrix.transform3(vector);
-                                
-                                setState(() {
-                                  final nodeId = DateTime.now().millisecondsSinceEpoch.toString();
-                                  nodes.add(NodeItem(
-                                    id: nodeId,
-                                    title: value.trim(),
-                                    position: Offset(transformedPoint.x, transformedPoint.y),
-                                    colorValue: const Color(0xFF6366F1).value,
-                                  ));
-                                });
-                                Navigator.pop(context);
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                      
-                      // Actions Section
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                onPressed: () => Navigator.pop(context),
-                                child: Text(
-                                  isTr ? 'İptal' : 'Cancel',
-                                  style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                ),
-                                child: TextButton(
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  onPressed: () {
-                                    final nodeTitle = _titleController.text.trim();
-                                    if (nodeTitle.isNotEmpty) {
-                                      final screenWidth = MediaQuery.of(context).size.width;
-                                      final screenHeight = MediaQuery.of(context).size.height;
-                                      final matrix = _transformationController.value;
-                                      
-                                      final vector = vector_math.Vector3(screenWidth / 2, screenHeight / 2, 0);
-                                      final invertedMatrix = matrix.clone()..invert();
-                                      final transformedPoint = invertedMatrix.transform3(vector);
-                                      
-                                      setState(() {
-                                        final nodeId = DateTime.now().millisecondsSinceEpoch.toString();
-                                        nodes.add(NodeItem(
-                                          id: nodeId,
-                                          title: nodeTitle,
-                                          position: Offset(transformedPoint.x, transformedPoint.y),
-                                          colorValue: const Color(0xFF6366F1).value,
-                                        ));
-                                      });
-                                      Navigator.pop(context);
-                                    }
-                                  },
-                                  child: Text(
-                                    isTr ? 'Oluştur' : 'Create',
-                                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+            _showManualCreateNodeDialog(isTr);
           },
           backgroundColor: Colors.transparent,
           elevation: 0,
           child: const Icon(Icons.add, size: 30, color: Colors.white),
         ),
       ),
-      body: InteractiveViewer(
-        transformationController: _transformationController,
-        constrained: false,
-        panEnabled: true,
-        scaleEnabled: true,
-        boundaryMargin: const EdgeInsets.all(double.infinity),
-        minScale: 0.1,
-        maxScale: 5.0,
-        child: Stack(
-          children: [
-            Container(
-              width: 6000,
-              height: 6000,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF1a1a1a),
-                    Color(0xFF2d2d2d),
-                    Color(0xFF404040),
+      body: Stack(
+        children: [
+          InteractiveViewer(
+            transformationController: _transformationController,
+            constrained: false,
+            panEnabled: true,
+            scaleEnabled: true,
+            boundaryMargin: const EdgeInsets.all(double.infinity),
+            minScale: 0.1,
+            maxScale: 5.0,
+            child: Stack(
+              children: [
+                Container(
+                  width: 6000,
+                  height: 6000,
+                  decoration: BoxDecoration(
+                    image: _backgroundImage != null
+                        ? DecorationImage(
+                            image: MemoryImage(_backgroundImage!),
+                            fit: BoxFit.contain,
+                          )
+                        : null,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF1a1a1a),
+                        Color(0xFF2d2d2d),
+                        Color(0xFF404040),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFF6366F1).withOpacity(0.3),
+                      width: 2.0,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                CustomPaint(
+                  painter: ConnectionPainter(nodes: nodes),
+                  size: const Size(3000, 3000),
+                ),
+                ...nodes.map((node) => Positioned(
+                  left: node.position.dx,
+                  top: node.position.dy,
+                  child: GestureDetector(
+                    onPanStart: (details) {
+                      setState(() {
+                        selectedNode = node;
+                        final renderBox = context.findRenderObject() as RenderBox;
+                        final localPosition = renderBox.globalToLocal(details.globalPosition);
+                        dragStartPosition = localPosition - node.position;
+                      });
+                    },
+                    onPanUpdate: (details) {
+                      if (selectedNode == node) {
+                        setState(() {
+                          final renderBox = context.findRenderObject() as RenderBox;
+                          final localPosition = renderBox.globalToLocal(details.globalPosition);
+                          node.position = localPosition - dragStartPosition!;
+                        });
+                      }
+                    },
+                    onPanEnd: (_) {
+                      setState(() {
+                        if (selectedNode == node) {
+                          selectedNode = null;
+                          dragStartPosition = null;
+                        }
+                      });
+                    },
+                    onLongPress: () {
+                      NodeActionsWidget.showActionsMenu(
+                        context: context,
+                        node: node,
+                        onStartConnection: () {
+                                setState(() {
+                                  connectionStartNode = node;
+                                });
+                              },
+                        onConnectHere: (connectionStartNode != null && connectionStartNode != node) 
+                          ? () {
+                                  setState(() {
+                                    if (!connectionStartNode!.connections.contains(node.id)) {
+                                      connectionStartNode!.connections.add(node.id);
+                                    }
+                                    connectionStartNode = null;
+                                  });
+                            }
+                          : null,
+                        onClearConnections: () {
+                                  setState(() {
+                                    node.connections.clear();
+                                    for (var otherNode in nodes) {
+                                      otherNode.connections.remove(node.id);
+                                    }
+                                  });
+                              },
+                        onDeleteNode: () {
+                          NodeActionsWidget.showDeleteConfirmation(
+                                  context: context,
+                            nodeName: node.title,
+                            onConfirm: () {
+                                          setState(() {
+                                            // Önce bu node'a olan tüm bağlantıları sil
+                                            for (var otherNode in nodes) {
+                                              otherNode.connections.remove(node.id);
+                                            }
+                                            // Sonra node'u listeden kaldır
+                                            nodes.remove(node);
+                                          });
+                                        },
+                                );
+                              },
+                      );
+                    },
+                    child: _buildNode(node),
+                  ),
+                )),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: GestureDetector(
+              onTap: _pickBackgroundImage,
+              child: Container(
+                width: 56, // Standart FAB boyutu
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.rectangle,
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
                   ],
                 ),
-                border: Border.all(
-                  color: const Color(0xFF6366F1).withOpacity(0.3),
-                  width: 2.0,
-                ),
-                borderRadius: BorderRadius.circular(20),
+                child: const Icon(Icons.image, color: Colors.white, size: 28),
               ),
             ),
-            CustomPaint(
-              painter: ConnectionPainter(nodes: nodes),
-              size: const Size(3000, 3000),
-            ),
-            ...nodes.map((node) => Positioned(
-              left: node.position.dx,
-              top: node.position.dy,
-              child: GestureDetector(
-                onPanStart: (details) {
-                  setState(() {
-                    selectedNode = node;
-                    final renderBox = context.findRenderObject() as RenderBox;
-                    final localPosition = renderBox.globalToLocal(details.globalPosition);
-                    dragStartPosition = localPosition - node.position;
-                  });
-                },
-                onPanUpdate: (details) {
-                  if (selectedNode == node) {
-                    setState(() {
-                      final renderBox = context.findRenderObject() as RenderBox;
-                      final localPosition = renderBox.globalToLocal(details.globalPosition);
-                      node.position = localPosition - dragStartPosition!;
-                    });
-                  }
-                },
-                onPanEnd: (_) {
-                  setState(() {
-                    if (selectedNode == node) {
-                      selectedNode = null;
-                      dragStartPosition = null;
-                    }
-                  });
-                },
-                onLongPress: () {
-                  NodeActionsWidget.showActionsMenu(
-                    context: context,
-                    node: node,
-                    onStartConnection: () {
-                            setState(() {
-                              connectionStartNode = node;
-                            });
-                          },
-                    onConnectHere: (connectionStartNode != null && connectionStartNode != node) 
-                      ? () {
-                              setState(() {
-                                if (!connectionStartNode!.connections.contains(node.id)) {
-                                  connectionStartNode!.connections.add(node.id);
-                                }
-                                connectionStartNode = null;
-                              });
-                        }
-                      : null,
-                    onClearConnections: () {
-                              setState(() {
-                                node.connections.clear();
-                                for (var otherNode in nodes) {
-                                  otherNode.connections.remove(node.id);
-                                }
-                              });
-                    },
-                    onDeleteNode: () {
-                      NodeActionsWidget.showDeleteConfirmation(
-                              context: context,
-                        nodeName: node.title,
-                        onConfirm: () {
-                                      setState(() {
-                                        // Önce bu node'a olan tüm bağlantıları sil
-                                        for (var otherNode in nodes) {
-                                          otherNode.connections.remove(node.id);
-                                        }
-                                        // Sonra node'u listeden kaldır
-                                        nodes.remove(node);
-                                      });
-                                    },
-                            );
-                          },
-                  );
-                },
-                child: _buildNode(node),
-              ),
-            )),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -487,6 +411,8 @@ class _MyHomePageState extends State<MyHomePage> {
             width: 150,
             height: 100,
             decoration: BoxDecoration(
+              shape: BoxShape.rectangle,
+              borderRadius: BorderRadius.circular(16),
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -495,21 +421,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   darkerColor,
                 ],
               ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: darkerColor.withOpacity(0.5),
-                  spreadRadius: 0,
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  spreadRadius: 0,
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
               border: Border.all(
                 color: Colors.white.withOpacity(0.1),
                 width: 1,
@@ -549,33 +460,35 @@ class _MyHomePageState extends State<MyHomePage> {
                   context: context,
                   node: node,
                   onStartConnection: () {
-                          setState(() {
-                            connectionStartNode = node;
-                          });
-                        },
+                                setState(() {
+                                  connectionStartNode = node;
+                                });
+                              },
                   onConnectHere: (connectionStartNode != null && connectionStartNode != node) 
                     ? () {
-                            setState(() {
-                              if (!connectionStartNode!.connections.contains(node.id)) {
-                                connectionStartNode!.connections.add(node.id);
-                              }
-                              connectionStartNode = null;
-                            });
-                      }
-                    : null,
+                                setState(() {
+                                  if (!connectionStartNode!.connections.contains(node.id)) {
+                                    connectionStartNode!.connections.add(node.id);
+                                  }
+                                  connectionStartNode = null;
+                                });
+                          }
+                        : null,
                   onClearConnections: () {
-                            setState(() {
-                              node.connections.clear();
-                              for (var otherNode in nodes) {
-                                otherNode.connections.remove(node.id);
-                              }
-                            });
-                          },
+                                setState(() {
+                                  node.connections.clear();
+                                  for (var otherNode in nodes) {
+                                    otherNode.connections.remove(node.id);
+                                  }
+                                });
+                              },
                 );
               },
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
+                  shape: BoxShape.rectangle,
+                  borderRadius: BorderRadius.circular(10),
                   gradient: LinearGradient(
                     colors: [
                       Colors.white.withOpacity(0.9),
@@ -584,7 +497,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
@@ -611,15 +523,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   context: context,
                   currentTitle: node.title,
                   onTitleChanged: (newTitle) {
-                          setState(() {
-                      node.title = newTitle;
-                          });
-                        },
+                                setState(() {
+                              node.title = newTitle;
+                                });
+                              },
                 );
               },
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
+                  shape: BoxShape.rectangle,
+                  borderRadius: BorderRadius.circular(10),
                   gradient: LinearGradient(
                     colors: [
                       Colors.white.withOpacity(0.9),
@@ -628,7 +542,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
@@ -655,20 +568,22 @@ class _MyHomePageState extends State<MyHomePage> {
                   context: context,
                   nodeName: node.title,
                   onConfirm: () {
-                          setState(() {
-                            // Önce bu node'a olan tüm bağlantıları sil
-                            for (var otherNode in nodes) {
-                              otherNode.connections.remove(node.id);
-                            }
-                            // Sonra node'u listeden kaldır
-                            nodes.remove(node);
-                          });
-                        },
+                                setState(() {
+                                  // Önce bu node'a olan tüm bağlantıları sil
+                                  for (var otherNode in nodes) {
+                                    otherNode.connections.remove(node.id);
+                                  }
+                                  // Sonra node'u listeden kaldır
+                                  nodes.remove(node);
+                                });
+                              },
                 );
               },
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
+                  shape: BoxShape.rectangle,
+                  borderRadius: BorderRadius.circular(10),
                   gradient: LinearGradient(
                     colors: [
                       Colors.white.withOpacity(0.9),
@@ -677,7 +592,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
@@ -722,6 +636,8 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
+                  shape: BoxShape.rectangle,
+                  borderRadius: BorderRadius.circular(10),
                   gradient: LinearGradient(
                     colors: [
                       Colors.white.withOpacity(0.9),
@@ -730,7 +646,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
@@ -745,6 +660,195 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: Color(0xFF8B5CF6),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showManualCreateNodeDialog(bool isTr) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2d2d2d),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Title Section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 15),
+                child: Text(
+                  isTr ? 'Yeni Node' : 'New Node',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                ),
+              ),
+              
+              // Content Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    gradient: LinearGradient(
+                      colors: [Colors.grey[800]!, Colors.grey[700]!],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _titleController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: isTr ? "Node İsmi" : "Node Name",
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.transparent,
+                      contentPadding: const EdgeInsets.all(16),
+                      isDense: true,
+                    ),
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (value) {
+                      if (value.trim().isNotEmpty) {
+                        _addNode(value.trim());
+                        Navigator.pop(context);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              
+              // Actions Section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 15, 20, 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          isTr ? 'İptal' : 'Cancel',
+                          style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () {
+                            final nodeTitle = _titleController.text.trim();
+                            if (nodeTitle.isNotEmpty) {
+                              _addNode(nodeTitle);
+                              Navigator.pop(context);
+                            }
+                          },
+                          child: Text(
+                            isTr ? 'Oluştur' : 'Create',
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _isUserSubscribed() async {
+    try {
+      final purchaserInfo = await Purchases.getCustomerInfo();
+      // Burada kendi ürün/abone ID’ni kullanmalısın!
+      return purchaserInfo.entitlements.active.containsKey('premium');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  void _onSavePressed() async {
+    final isSubscribed = await _isUserSubscribed();
+    if (!isSubscribed) {
+      // Abone değilse, abone olma ekranına yönlendir
+      _showSubscriptionDialog();
+      return;
+    }
+    await _saveNodes();
+  }
+
+  void _showSubscriptionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2d2d2d),
+        title: Text(
+          'Abone Olun',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Bu özellik Premium abonesi için açık. Abone olmak ister misiniz?',
+          style: TextStyle(color: Colors.grey[400]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'İptal',
+              style: TextStyle(color: Colors.grey[400], fontSize: 16),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // TODO: Abone olma mantığı buraya eklenecek
+            },
+            child: Text(
+              'Abone Ol',
+              style: const TextStyle(color: Color(0xFF6366F1), fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ],

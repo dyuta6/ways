@@ -49,8 +49,8 @@ workflows:
           cd ./ios
           agvtool new-version -all $NEW_BUILD_NUMBER
           
-          # Marketing version'ı sadece major.minor formatında tut
-          agvtool new-marketing-version 1.0
+          # Marketing version'ı yükselt - önceki approved version 1.0.20'den yüksek olmalı
+          agvtool new-marketing-version 1.1.0
           
           # Güncel version bilgilerini kontrol et
           echo "Current build number: $(agvtool what-version -terse)"

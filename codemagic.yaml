@@ -33,11 +33,28 @@ workflows:
           find . -name "Podfile" -execdir pod install \;
       - name: Increment version and build number
         script: |
-          LATEST_BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_ID") + 1))
-          echo "Setting build number to: $LATEST_BUILD_NUMBER"
+          # App Store Connect'ten en son build numarasını almaya çalış
+          if LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_ID" 2>/dev/null); then
+            echo "Latest build number from App Store Connect: $LATEST_BUILD_NUMBER"
+            NEW_BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
+          else
+            # API başarısız olursa, timestamp kullan
+            echo "Failed to get build number from App Store Connect, using timestamp"
+            NEW_BUILD_NUMBER=$(date +%Y%m%d%H%M)
+          fi
+          
+          echo "Setting new build number to: $NEW_BUILD_NUMBER"
+          
+          # iOS dizinine geç ve version'ları güncelle
           cd ./ios
-          agvtool new-version -all $LATEST_BUILD_NUMBER
-          agvtool new-marketing-version 1.0.$LATEST_BUILD_NUMBER
+          agvtool new-version -all $NEW_BUILD_NUMBER
+          
+          # Marketing version'ı sadece major.minor formatında tut
+          agvtool new-marketing-version 1.0
+          
+          # Güncel version bilgilerini kontrol et
+          echo "Current build number: $(agvtool what-version -terse)"
+          echo "Current marketing version: $(agvtool what-marketing-version -terse1)"
 
       - name: Flutter build ipa
         script: |

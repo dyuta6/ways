@@ -802,9 +802,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<bool> _isUserSubscribed() async {
     try {
-      final purchaserInfo = await Purchases.getCustomerInfo();
-      // Burada kendi ürün/abone ID’ni kullanmalısın!
-      return purchaserInfo.entitlements.active.containsKey('premium');
+      // Platform kontrolü - sadece iOS'ta subscription kontrolü yap
+      if (Theme.of(context).platform == TargetPlatform.iOS) {
+        final purchaserInfo = await Purchases.getCustomerInfo();
+        return purchaserInfo.entitlements.active.containsKey('premium');
+      } else {
+        // Android'de şimdilik false döndür (test için)
+        print('Android platform - subscription kontrolü devre dışı');
+        return false;
+      }
     } catch (e) {
       return false;
     }
@@ -829,9 +835,25 @@ class _MyHomePageState extends State<MyHomePage> {
           'Abone Olun',
           style: const TextStyle(color: Colors.white),
         ),
-        content: Text(
-          'Bu özellik Premium abonesi için açık. Abone olmak ister misiniz?',
-          style: TextStyle(color: Colors.grey[400]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Bu özellik Premium abonesi için açık. Abone olmak ister misiniz?',
+              style: TextStyle(color: Colors.grey[400]),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _debugOfferings();
+              },
+              child: Text(
+                'Debug: Ürünleri Kontrol Et',
+                style: TextStyle(color: Colors.orange, fontSize: 14),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -842,9 +864,9 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              // TODO: Abone olma mantığı buraya eklenecek
+              await _purchaseSubscription();
             },
             child: Text(
               'Abone Ol',
@@ -854,6 +876,164 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
     );
+  }
+
+  Future<void> _debugOfferings() async {
+    try {
+      // Platform kontrolü - sadece iOS'ta debug yap
+      if (Theme.of(context).platform == TargetPlatform.iOS) {
+        final offerings = await Purchases.getOfferings();
+        print('=== REVENUECAT DEBUG (iOS) ===');
+        print('All offerings: ${offerings.all.keys}');
+        
+        if (offerings.current != null) {
+          print('Current offering: ${offerings.current!.identifier}');
+          print('Available packages: ${offerings.current!.availablePackages.length}');
+          
+          for (var package in offerings.current!.availablePackages) {
+            print('Package: ${package.identifier}');
+            print('  - Title: ${package.storeProduct.title}');
+            print('  - Description: ${package.storeProduct.description}');
+            print('  - Price: ${package.storeProduct.priceString}');
+            print('  - Product ID: ${package.storeProduct.identifier}');
+          }
+        } else {
+          print('No current offering available');
+        }
+        
+        // Customer info kontrolü
+        final customerInfo = await Purchases.getCustomerInfo();
+        print('Customer entitlements: ${customerInfo.entitlements.active.keys}');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'iOS Debug bilgileri console\'da görüntülendi',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.blue,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      } else {
+        // Android'de platform bilgisi göster
+        print('=== PLATFORM DEBUG ===');
+        print('Platform: Android');
+        print('Subscription özelliği şu anda sadece iOS\'ta aktif');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Subscription özelliği sadece iOS\'ta aktif',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Debug error: $e');
+    }
+  }
+
+  Future<void> _purchaseSubscription() async {
+    try {
+      // Platform kontrolü - sadece iOS'ta satın alma yap
+      if (Theme.of(context).platform == TargetPlatform.iOS) {
+        // Debug: Mevcut offerings'leri kontrol et
+        final offerings = await Purchases.getOfferings();
+        print('Available offerings: ${offerings.all.keys}');
+        
+        if (offerings.current != null) {
+          print('Current offering: ${offerings.current!.identifier}');
+          print('Available packages: ${offerings.current!.availablePackages.length}');
+          
+          for (var package in offerings.current!.availablePackages) {
+            print('Package: ${package.identifier} - ${package.storeProduct.title} - ${package.storeProduct.priceString}');
+          }
+        } else {
+          print('No current offering available');
+        }
+        
+        if (offerings.current != null && offerings.current!.availablePackages.isNotEmpty) {
+          final package = offerings.current!.availablePackages.first;
+          
+          // Satın alma işlemini başlat
+          final purchaserInfo = await Purchases.purchasePackage(package);
+          
+          if (purchaserInfo.entitlements.active.containsKey('premium')) {
+            // Başarılı satın alma
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Premium aboneliğiniz aktif!',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                margin: const EdgeInsets.all(16),
+              ),
+            );
+          }
+        } else {
+          // Ürün bulunamadı - daha detaylı hata mesajı
+          String errorMessage = 'Ürün bulunamadı.';
+          if (offerings.current == null) {
+            errorMessage += ' Current offering yok.';
+          } else if (offerings.current!.availablePackages.isEmpty) {
+            errorMessage += ' Available packages yok.';
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                errorMessage,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+      } else {
+        // Android'de bilgi mesajı göster
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Subscription özelliği şu anda sadece iOS\'ta mevcut',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    } catch (e) {
+      // Hata durumu
+      print('Purchase error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Satın alma işlemi başarısız: ${e.toString()}',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
   }
 }
 

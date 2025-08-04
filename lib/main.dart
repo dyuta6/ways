@@ -5,9 +5,16 @@ import 'package:ways/project_model.dart';
 import 'package:ways/startup_page.dart';
 import 'package:ways/type_adapters.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // RevenueCat konfigürasyonu
+  await Purchases.setLogLevel(LogLevel.debug);
+  // RevenueCat API Key'i buraya yazın (Project Settings > API Keys bölümünden alabilirsiniz)
+  await Purchases.configure(PurchasesConfiguration("appl_iaNBWknUmPPpZnFBZOwHTwDHdkj"));
+  
   final appDocumentDir = await path_provider.getApplicationDocumentsDirectory();
   await Hive.initFlutter(appDocumentDir.path);
   Hive.registerAdapter(NodeItemAdapter());

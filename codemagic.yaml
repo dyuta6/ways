@@ -33,28 +33,31 @@ workflows:
           find . -name "Podfile" -execdir pod install \;
       - name: Increment version and build number
         script: |
-          # App Store Connect'ten en son build numarasını almaya çalış
-          if LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_ID" 2>/dev/null); then
-            echo "Latest build number from App Store Connect: $LATEST_BUILD_NUMBER"
-            NEW_BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
-          else
-            # API başarısız olursa, timestamp kullan
-            echo "Failed to get build number from App Store Connect, using timestamp"
-            NEW_BUILD_NUMBER=$(date +%Y%m%d%H%M)
-          fi
-          
-          echo "Setting new build number to: $NEW_BUILD_NUMBER"
+          # Timestamp kullanarak unique build number oluştur
+          TIMESTAMP=$(date +%Y%m%d%H%M)
+          echo "Using timestamp for build number: $TIMESTAMP"
           
           # iOS dizinine geç ve version'ları güncelle
           cd ./ios
-          agvtool new-version -all $NEW_BUILD_NUMBER
           
-          # Marketing version'ı yükselt - önceki approved version 1.0.20'den yüksek olmalı
-          agvtool new-marketing-version 1.1.0
+          # Build number'ı timestamp ile güncelle
+          agvtool new-version -all $TIMESTAMP
           
-          # Güncel version bilgilerini kontrol et
-          echo "Current build number: $(agvtool what-version -terse)"
-          echo "Current marketing version: $(agvtool what-marketing-version -terse1)"
+          # Marketing version'ı 1.1.0 olarak ayarla
+          agvtool new-marketing-version 1.1.1
+          
+          # Güncel version bilgilerini kontrol et ve logla
+          CURRENT_BUILD=$(agvtool what-version -terse)
+          CURRENT_MARKETING=$(agvtool what-marketing-version -terse1)
+          
+          echo "=== VERSION INFO ==="
+          echo "Build Number: $CURRENT_BUILD"
+          echo "Marketing Version: $CURRENT_MARKETING"
+          echo "Timestamp Used: $TIMESTAMP"
+          echo "==================="
+          
+          # Version bilgilerini dosyaya da yaz (debug için)
+          echo "Build: $CURRENT_BUILD, Marketing: $CURRENT_MARKETING, Timestamp: $TIMESTAMP" > version_info.txt
 
       - name: Flutter build ipa
         script: |

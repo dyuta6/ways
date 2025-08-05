@@ -827,39 +827,28 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _showSubscriptionDialog() {
+    final locale = Localizations.localeOf(context);
+    final isTurkish = locale.languageCode == 'tr';
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2d2d2d),
         title: Text(
-          'Abone Olun',
+          isTurkish ? 'Abone Olun' : 'Subscribe',
           style: const TextStyle(color: Colors.white),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Bu özellik Premium abonesi için açık. Abone olmak ister misiniz?',
-              style: TextStyle(color: Colors.grey[400]),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await _debugOfferings();
-              },
-              child: Text(
-                'Debug: Ürünleri Kontrol Et',
-                style: TextStyle(color: Colors.orange, fontSize: 14),
-              ),
-            ),
-          ],
+        content: Text(
+          isTurkish 
+            ? 'Bu özellik Premium abonesi için açık. Abone olmak ister misiniz?'
+            : 'This feature is available for Premium subscribers. Would you like to subscribe?',
+          style: TextStyle(color: Colors.grey[400]),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'İptal',
+              isTurkish ? 'İptal' : 'Cancel',
               style: TextStyle(color: Colors.grey[400], fontSize: 16),
             ),
           ),
@@ -869,7 +858,7 @@ class _MyHomePageState extends State<MyHomePage> {
               await _purchaseSubscription();
             },
             child: Text(
-              'Abone Ol',
+              isTurkish ? 'Abone Ol' : 'Subscribe',
               style: const TextStyle(color: Color(0xFF6366F1), fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
@@ -905,10 +894,15 @@ class _MyHomePageState extends State<MyHomePage> {
         final customerInfo = await Purchases.getCustomerInfo();
         print('Customer entitlements: ${customerInfo.entitlements.active.keys}');
         
+        final locale = Localizations.localeOf(context);
+        final debugMessage = locale.languageCode == 'tr' 
+            ? 'iOS Debug bilgileri console\'da görüntülendi'
+            : 'iOS Debug information displayed in console';
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'iOS Debug bilgileri console\'da görüntülendi',
+              debugMessage,
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             backgroundColor: Colors.blue,
@@ -923,10 +917,15 @@ class _MyHomePageState extends State<MyHomePage> {
         print('Platform: Android');
         print('Subscription özelliği şu anda sadece iOS\'ta aktif');
         
+        final locale = Localizations.localeOf(context);
+        final platformMessage = locale.languageCode == 'tr' 
+            ? 'Subscription özelliği sadece iOS\'ta aktif'
+            : 'Subscription feature is only available on iOS';
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Subscription özelliği sadece iOS\'ta aktif',
+              platformMessage,
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             backgroundColor: Colors.orange,
@@ -968,10 +967,15 @@ class _MyHomePageState extends State<MyHomePage> {
           
           if (purchaserInfo.entitlements.active.containsKey('premium')) {
             // Başarılı satın alma
+            final locale = Localizations.localeOf(context);
+            final successMessage = locale.languageCode == 'tr' 
+                ? 'Premium aboneliğiniz aktif!' 
+                : 'Your Premium subscription is active!';
+            
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Premium aboneliğiniz aktif!',
+                  successMessage,
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
                 backgroundColor: Colors.green,
@@ -983,11 +987,12 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         } else {
           // Ürün bulunamadı - daha detaylı hata mesajı
-          String errorMessage = 'Ürün bulunamadı.';
+          final locale = Localizations.localeOf(context);
+          String errorMessage = locale.languageCode == 'tr' ? 'Ürün bulunamadı.' : 'Product not found.';
           if (offerings.current == null) {
-            errorMessage += ' Current offering yok.';
+            errorMessage += locale.languageCode == 'tr' ? ' Current offering yok.' : ' Current offering not available.';
           } else if (offerings.current!.availablePackages.isEmpty) {
-            errorMessage += ' Available packages yok.';
+            errorMessage += locale.languageCode == 'tr' ? ' Available packages yok.' : ' Available packages not found.';
           }
           
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1005,10 +1010,15 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       } else {
         // Android'de bilgi mesajı göster
+        final locale = Localizations.localeOf(context);
+        final androidMessage = locale.languageCode == 'tr' 
+            ? 'Subscription özelliği şu anda sadece iOS\'ta mevcut'
+            : 'Subscription feature is currently only available on iOS';
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Subscription özelliği şu anda sadece iOS\'ta mevcut',
+              androidMessage,
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             backgroundColor: Colors.orange,
@@ -1021,10 +1031,15 @@ class _MyHomePageState extends State<MyHomePage> {
     } catch (e) {
       // Hata durumu
       print('Purchase error: $e');
+      final locale = Localizations.localeOf(context);
+      final errorMessage = locale.languageCode == 'tr' 
+          ? 'Satın alma işlemi başarısız: ${e.toString()}'
+          : 'Purchase failed: ${e.toString()}';
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Satın alma işlemi başarısız: ${e.toString()}',
+            errorMessage,
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.red,

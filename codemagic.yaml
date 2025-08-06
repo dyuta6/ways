@@ -44,7 +44,7 @@ workflows:
           agvtool new-version -all $TIMESTAMP
           
           # Marketing version'ı 1.1.0 olarak ayarla
-          agvtool new-marketing-version 1.1.1
+          agvtool new-marketing-version 1.1.2
           
           # Güncel version bilgilerini kontrol et ve logla
           CURRENT_BUILD=$(agvtool what-version -terse)

@@ -36,8 +36,9 @@ workflows:
           # iOS dizinine geç ve version'ları güncelle
           cd ./ios
           
-          # Build number'ı 1 olarak ayarla (App Store için)
-          agvtool new-version -all 1
+          # Build number'ı timestamp ile oluştur (App Store için unique olmalı)
+          BUILD_NUMBER=$(date +%Y%m%d%H%M)
+          agvtool new-version -all $BUILD_NUMBER
           
           # Marketing version'ı 1.1.4 olarak ayarla
           agvtool new-marketing-version 1.1.4
@@ -56,10 +57,16 @@ workflows:
 
       - name: Flutter build ipa
         script: |
-          flutter build ipa --release
+          flutter build ipa --release --verbose
+          
+          # Build sonrası kontrol
+          echo "=== BUILD ARTIFACTS ==="
+          find /Users/builder/clone/build -name "*.ipa" -type f
+          echo "======================="
     artifacts:
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
       - /Users/builder/clone/build/ios/ipa/*.ipa
+      - /Users/builder/clone/build/ios/**/*.ipa
       - flutter_drive.log
     publishing:
       app_store_connect:

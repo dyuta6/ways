@@ -6,6 +6,7 @@ import 'color_picker_widget.dart';
 import 'node_actions_widget.dart';
 import 'services/background_image_service.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 part 'home_page.g.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -835,14 +836,159 @@ class _MyHomePageState extends State<MyHomePage> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2d2d2d),
         title: Text(
-          isTurkish ? 'Abone Olun' : 'Subscribe',
-          style: const TextStyle(color: Colors.white),
+          isTurkish ? 'Ways Premium' : 'Ways Premium',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        content: Text(
-          isTurkish 
-            ? 'Bu özellik Premium abonesi için açık. Abone olmak ister misiniz?'
-            : 'This feature is available for Premium subscribers. Would you like to subscribe?',
-          style: TextStyle(color: Colors.grey[400]),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isTurkish 
+                  ? 'Mind map projelerinizi kaydetmek için Premium aboneliğe ihtiyacınız var.'
+                  : 'You need a Premium subscription to save your mind map projects.',
+                style: TextStyle(color: Colors.grey[400], fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isTurkish ? 'Premium Özellikler:' : 'Premium Features:',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isTurkish 
+                        ? '• Sınırsız proje kaydetme\n• Gelişmiş düzenleme araçları\n• Bulut senkronizasyonu'
+                        : '• Unlimited project saving\n• Advanced editing tools\n• Cloud synchronization',
+                      style: TextStyle(color: Colors.grey[300]),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isTurkish 
+                  ? 'Fiyat: Aylık \$0.99 USD'
+                  : 'Price: \$0.99 USD per month',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isTurkish 
+                  ? 'Abonelik otomatik olarak yenilenir. İstediğiniz zaman iptal edebilirsiniz.'
+                  : 'Subscription auto-renews. You can cancel anytime.',
+                style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        // Terms of Use linki
+                        try {
+                          final url = Uri.parse('https://github.com/dyuta6/ways-Terms-of-Use/blob/main/Terms-Of-Use.md');
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          } else {
+                            // URL açılamazsa kullanıcıya bilgi ver
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isTurkish ? 'Link açılamadı' : 'Could not open link',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          print('URL launch error: $e');
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          isTurkish ? 'Kullanım Şartları' : 'Terms of Use',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF6366F1),
+                            decoration: TextDecoration.underline,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        // Privacy Policy linki
+                        try {
+                          final url = Uri.parse('https://github.com/dyuta6/ways-Terms-of-Use/blob/main/Privacy%20Policy.md');
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          } else {
+                            // URL açılamazsa kullanıcıya bilgi ver
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isTurkish ? 'Link açılamadı' : 'Could not open link',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          print('URL launch error: $e');
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          isTurkish ? 'Gizlilik Politikası' : 'Privacy Policy',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF6366F1),
+                            decoration: TextDecoration.underline,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

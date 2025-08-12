@@ -24,13 +24,7 @@ workflows:
       - name: Set up signing certificate
         script: keychain add-certificates
       - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
-          # Manual code signing fallback
-          xcode-project set-automatic-code-signing \
-            project-path:ios/Runner.xcodeproj \
-            target:Runner \
-            team-id:GCPW8WTY3S
+        script: xcode-project use-profiles
       - name: Verify code signing setup
         script: |
           echo "=== CODE SIGNING VERIFICATION ==="

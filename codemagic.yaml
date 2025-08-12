@@ -30,6 +30,16 @@ workflows:
           echo "=== CODE SIGNING VERIFICATION ==="
           security find-identity -v -p codesigning
           echo "================================="
+          
+          # Export options plist'i kontrol et
+          echo "=== EXPORT OPTIONS PLIST ==="
+          if [ -f "/Users/builder/export_options.plist" ]; then
+            echo "Export options plist found:"
+            cat /Users/builder/export_options.plist
+          else
+            echo "Export options plist not found!"
+          fi
+          echo "============================="
       - name: Get Flutter packages
         script: |
           flutter packages pub get
@@ -71,8 +81,15 @@ workflows:
           flutter doctor -v
           echo "======================="
           
-          # Build işlemi
-          flutter build ipa --release --verbose
+          # Önce Flutter archive oluştur
+          flutter build ios --release --no-codesign
+          
+          # Sonra xcodebuild ile IPA oluştur
+          cd ios
+          xcodebuild -exportArchive \
+            -archivePath ../build/ios/archive/Runner.xcarchive \
+            -exportPath ../build/ios/ipa \
+            -exportOptionsPlist /Users/builder/export_options.plist
           
           # Build sonrası kontrol
           echo "=== BUILD ARTIFACTS ==="

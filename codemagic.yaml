@@ -81,15 +81,28 @@ workflows:
           flutter doctor -v
           echo "======================="
           
-          # Önce Flutter archive oluştur
-          flutter build ios --release --no-codesign
+          # Flutter ile doğrudan IPA oluştur (code signing ile)
+          flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
           
-          # Sonra xcodebuild ile IPA oluştur
-          cd ios
-          xcodebuild -exportArchive \
-            -archivePath ../build/ios/archive/Runner.xcarchive \
-            -exportPath ../build/ios/ipa \
-            -exportOptionsPlist /Users/builder/export_options.plist
+          # Eğer Flutter build başarısız olursa, xcodebuild ile dene
+          if [ ! -f "/Users/builder/clone/build/ios/ipa/Runner.ipa" ]; then
+            echo "Flutter build failed, trying xcodebuild..."
+            
+            # Önce archive oluştur
+            cd ios
+            xcodebuild -workspace Runner.xcworkspace \
+              -scheme Runner \
+              -configuration Release \
+              -destination generic/platform=iOS \
+              -archivePath ../build/ios/archive/Runner.xcarchive \
+              archive
+              
+            # Sonra IPA oluştur
+            xcodebuild -exportArchive \
+              -archivePath ../build/ios/archive/Runner.xcarchive \
+              -exportPath ../build/ios/ipa \
+              -exportOptionsPlist /Users/builder/export_options.plist
+          fi
           
           # Build sonrası kontrol
           echo "=== BUILD ARTIFACTS ==="
